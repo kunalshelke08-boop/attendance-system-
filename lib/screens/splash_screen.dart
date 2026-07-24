@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -15,6 +16,8 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  bool _navigated = false;
+  Timer? _timeoutTimer;
 
   @override
   void initState() {
@@ -34,13 +37,49 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
+    // Minimum splash display time + auth resolution
     Future.delayed(const Duration(seconds: 2), () {
-      _navigate();
+      _tryNavigate();
+    });
+
+    // Timeout fallback — go to login if auth doesn't resolve in 4s
+    _timeoutTimer = Timer(const Duration(seconds: 4), () {
+      if (!_navigated && mounted) {
+        _navigated = true;
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     });
   }
 
-  void _navigate() {
+  void _tryNavigate() {
+    if (_navigated || !mounted) return;
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // If auth state has been resolved
+    if (authProvider.status != AuthStatus.initial) {
+      _doNavigate(authProvider);
+      return;
+    }
+
+    // Auth state still loading — listen for changes
+    void listener() {
+      if (_navigated || !mounted) return;
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (auth.status != AuthStatus.initial) {
+        auth.removeListener(listener);
+        _doNavigate(auth);
+      }
+    }
+
+    authProvider.addListener(listener);
+  }
+
+  void _doNavigate(AuthProvider authProvider) {
+    if (_navigated || !mounted) return;
+    _navigated = true;
+    _timeoutTimer?.cancel();
+
     if (authProvider.isAuthenticated) {
       final role = authProvider.user?.role ?? 'student';
       if (role == 'teacher') {
@@ -56,6 +95,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void dispose() {
     _controller.dispose();
+    _timeoutTimer?.cancel();
     super.dispose();
   }
 
