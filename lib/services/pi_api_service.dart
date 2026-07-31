@@ -95,15 +95,18 @@ class PiApiService {
     }
   }
 
-  /// Check if Pi is reachable
-  Future<bool> checkConnection() async {
+  /// Get full server status including session_active flag
+  Future<Map<String, dynamic>> getServerStatus() async {
     try {
       final response = await http
           .get(Uri.parse('$_baseUrl/ping'))
           .timeout(const Duration(seconds: 5));
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return {'status': 'error', 'session_active': false};
     } catch (e) {
-      return false;
+      return {'status': 'error', 'session_active': false};
     }
   }
 }

@@ -69,7 +69,9 @@ class MarkAttendanceScreen extends StatelessWidget {
                       Expanded(
                         child: Text(
                           connectivity.isPiReachable
-                              ? 'Connected to Attendance Server'
+                              ? (connectivity.isSessionActive
+                                  ? 'Connected to Server (Session Active)'
+                                  : 'Connected to Server (Waiting for Teacher...)')
                               : 'Server unreachable — will save locally',
                           style: AppTheme.bodyMedium,
                         ),
@@ -86,7 +88,8 @@ class MarkAttendanceScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: alreadyMarked ||
                             attendance.markingStatus == MarkingStatus.authenticating ||
-                            attendance.markingStatus == MarkingStatus.sending
+                            attendance.markingStatus == MarkingStatus.sending ||
+                            (connectivity.isPiReachable && !connectivity.isSessionActive)
                         ? null
                         : () async {
                             await attendance.markAttendance(

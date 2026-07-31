@@ -9,10 +9,13 @@ class ConnectivityProvider extends ChangeNotifier {
 
   bool _isOnline = false;
   bool _isPiReachable = false;
+  bool _isSessionActive = false;
   StreamSubscription? _subscription;
 
   bool get isOnline => _isOnline;
   bool get isPiReachable => _isPiReachable;
+  bool get isSessionActive => _isSessionActive;
+
   String get statusText {
     if (_isOnline && _isPiReachable) return 'Online + Pi Connected';
     if (_isOnline) return 'Online';
@@ -40,7 +43,9 @@ class ConnectivityProvider extends ChangeNotifier {
   }
 
   Future<void> checkPiConnection() async {
-    _isPiReachable = await _piApi.checkConnection();
+    final status = await _piApi.getServerStatus();
+    _isPiReachable = status['status'] == 'ok';
+    _isSessionActive = status['session_active'] ?? false;
     notifyListeners();
   }
 
