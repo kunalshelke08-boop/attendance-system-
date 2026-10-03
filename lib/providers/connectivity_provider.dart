@@ -30,11 +30,11 @@ class ConnectivityProvider extends ChangeNotifier {
   Future<void> _init() async {
     // Initial check — v5+ returns List<ConnectivityResult>
     final results = await _connectivity.checkConnectivity();
-    _isOnline = !results.contains(ConnectivityResult.none);
+    _isOnline = results != ConnectivityResult.none;
 
     // Listen for changes — v5+ emits List<ConnectivityResult>
     _subscription = _connectivity.onConnectivityChanged.listen((results) {
-      _isOnline = !results.contains(ConnectivityResult.none);
+      _isOnline = results != ConnectivityResult.none;
       notifyListeners();
     });
 
@@ -51,7 +51,7 @@ class ConnectivityProvider extends ChangeNotifier {
 
   Future<void> refresh() async {
     final results = await _connectivity.checkConnectivity();
-    _isOnline = !results.contains(ConnectivityResult.none);
+    _isOnline = results != ConnectivityResult.none;
     await checkPiConnection();
     notifyListeners();
   }
