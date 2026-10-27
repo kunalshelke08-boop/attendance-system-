@@ -10,6 +10,7 @@ import 'services/biometric_service.dart';
 import 'services/pi_api_service.dart';
 import 'services/local_storage_service.dart';
 import 'services/sync_service.dart';
+import 'services/timetable_service.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/attendance_provider.dart';
@@ -26,6 +27,7 @@ import 'screens/teacher_home.dart';
 import 'screens/common/sync_status_screen.dart';
 import 'screens/teacher/realtime_attendance_screen.dart';
 import 'screens/teacher/edit_attendance_screen.dart';
+import 'screens/auth/teacher_name_setup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,6 +72,7 @@ class AttendanceApp extends StatelessWidget {
     final firestoreService = FirestoreService();
     final biometricService = BiometricService();
     final syncService = SyncService(localStorageService, firestoreService);
+    final timetableService = TimetableService();
 
     return MultiProvider(
       providers: [
@@ -95,6 +98,7 @@ class AttendanceApp extends StatelessWidget {
             localStorageService,
             piApiService,
             biometricService,
+            timetableService,
           ),
         ),
 
@@ -125,6 +129,7 @@ class AttendanceApp extends StatelessWidget {
           '/forgot_password': (ctx) => const ForgotPasswordScreen(),
           '/student_home': (ctx) => const StudentHome(),
           '/teacher_home': (ctx) => const TeacherHome(),
+          '/teacher_name_setup': (ctx) => const TeacherNameSetupScreen(),
           '/sync_status': (ctx) => const SyncStatusScreen(),
           '/realtime_attendance': (ctx) => const RealtimeAttendanceScreen(),
         },

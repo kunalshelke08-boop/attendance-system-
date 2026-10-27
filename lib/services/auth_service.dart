@@ -78,6 +78,10 @@ class AuthService {
     return UserModel.fromMap(doc.data()!, user.uid);
   }
 
+  Future<void> updateUserProfile(UserModel user) async {
+    await _firestore.collection('users').doc(user.uid).update(user.toMap());
+  }
+
   Future<void> signOut() async {
     await _auth.signOut();
   }

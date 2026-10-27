@@ -54,9 +54,13 @@ class _LoginScreenState extends State<LoginScreen>
     );
 
     if (success && mounted) {
-      final role = authProvider.user?.role ?? 'student';
-      if (role == 'teacher') {
-        Navigator.pushReplacementNamed(context, '/teacher_home');
+      final user = authProvider.user;
+      if (user != null && user.isTeacher) {
+        if (user.needsNameSetup) {
+          Navigator.pushReplacementNamed(context, '/teacher_name_setup');
+        } else {
+          Navigator.pushReplacementNamed(context, '/teacher_home');
+        }
       } else {
         Navigator.pushReplacementNamed(context, '/student_home');
       }

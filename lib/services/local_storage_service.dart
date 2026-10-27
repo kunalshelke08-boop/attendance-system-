@@ -78,9 +78,15 @@ class LocalStorageService {
     }
   }
 
-  bool hasRecord(String classId, String date, String uid) {
-    final key = '${classId}_${date}_$uid';
-    return _attendanceRecords.containsKey(key);
+  bool hasRecord(String classId, String date, String uid, {int lectureSlot = 0}) {
+    if (lectureSlot > 0) {
+      final key = '${classId}_${date}_${lectureSlot}_$uid';
+      return _attendanceRecords.containsKey(key);
+    }
+    // Fallback: check if any record exists for this day
+    return _attendanceRecords.values.any(
+      (r) => r.classId == classId && r.date == date && r.uid == uid,
+    );
   }
 
   int get totalRecords => _attendanceRecords.length;

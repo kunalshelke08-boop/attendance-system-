@@ -3,6 +3,7 @@ import '../models/attendance_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/pi_api_service.dart';
 import '../services/biometric_service.dart';
+import '../services/timetable_service.dart';
 import '../utils/helpers.dart';
 import '../utils/constants.dart';
 
@@ -12,20 +13,65 @@ class AttendanceProvider extends ChangeNotifier {
   final LocalStorageService _localStorage;
   final PiApiService _piApi;
   final BiometricService _biometricService;
+  final TimetableService _timetableService;
 
   MarkingStatus _markingStatus = MarkingStatus.idle;
   String _markingMessage = '';
   List<AttendanceRecord> _todayRecords = [];
   List<Map<String, dynamic>> _piAttendanceList = [];
+  CurrentLectureInfo _currentLecture = const CurrentLectureInfo(
+    status: 'idle',
+    message: 'Checking timetable...',
+  );
+
+  // For batch lecture selection
+  String? _selectedBatch;
 
   MarkingStatus get markingStatus => _markingStatus;
   String get markingMessage => _markingMessage;
   List<AttendanceRecord> get todayRecords => _todayRecords;
   List<Map<String, dynamic>> get piAttendanceList => _piAttendanceList;
+  CurrentLectureInfo get currentLecture => _currentLecture;
+  TimetableService get timetableService => _timetableService;
+  String? get selectedBatch => _selectedBatch;
 
-  AttendanceProvider(this._localStorage, this._piApi, this._biometricService);
+  AttendanceProvider(
+    this._localStorage,
+    this._piApi,
+    this._biometricService,
+    this._timetableService,
+  ) {
+    refreshCurrentLecture();
+  }
+
+  /// Refresh the current lecture info based on current time
+  void refreshCurrentLecture() {
+    _currentLecture = _timetableService.getCurrentLecture();
+    notifyListeners();
+  }
+
+  /// Set the selected batch for batch lecture slots
+  void setSelectedBatch(String? batch) {
+    _selectedBatch = batch;
+    notifyListeners();
+  }
+
+  /// Get the active lecture slot (handles batch selection)
+  LectureSlot? getActiveLecture() {
+    if (_currentLecture.lecture != null) {
+      return _currentLecture.lecture;
+    }
+    if (_currentLecture.batchLectures != null && _selectedBatch != null) {
+      return _currentLecture.batchLectures!.firstWhere(
+        (l) => l.batch == _selectedBatch,
+        orElse: () => _currentLecture.batchLectures!.first,
+      );
+    }
+    return null;
+  }
 
   /// Full attendance marking flow: biometric → Pi → local save
+  /// Now auto-attaches subject, faculty, and lecture slot
   Future<bool> markAttendance({
     required String uid,
     required String name,
@@ -33,10 +79,27 @@ class AttendanceProvider extends ChangeNotifier {
   }) async {
     final today = Helpers.todayDate();
 
-    // Check if already marked
-    if (_localStorage.hasRecord(classId, today, uid)) {
+    // Refresh lecture info
+    refreshCurrentLecture();
+
+    // Get the active lecture
+    final activeLecture = getActiveLecture();
+    if (activeLecture == null) {
       _markingStatus = MarkingStatus.error;
-      _markingMessage = 'Attendance already marked for today.';
+      _markingMessage = _currentLecture.status == 'in_lecture'
+          ? 'Please select your batch first.'
+          : 'No lecture is currently in session.';
+      notifyListeners();
+      return false;
+    }
+
+    final lectureSlot = activeLecture.periodNumber;
+
+    // Check if already marked for THIS lecture
+    if (_localStorage.hasRecord(classId, today, uid, lectureSlot: lectureSlot)) {
+      _markingStatus = MarkingStatus.error;
+      _markingMessage =
+          'Attendance already marked for ${activeLecture.subject} (${activeLecture.periodLabel}).';
       notifyListeners();
       return false;
     }
@@ -81,7 +144,7 @@ class AttendanceProvider extends ChangeNotifier {
       print('Pi API failed: $e');
     }
 
-    // Step 3: Save locally
+    // Step 3: Save locally with lecture info
     final record = AttendanceRecord(
       uid: uid,
       name: name,
@@ -91,14 +154,17 @@ class AttendanceProvider extends ChangeNotifier {
       status: AppConstants.statusPresent,
       markedVia: AppConstants.markBiometric,
       isSynced: false,
+      subject: activeLecture.subject,
+      facultyInitials: activeLecture.facultyInitials,
+      lectureSlot: lectureSlot,
     );
 
     await _localStorage.saveAttendance(record);
 
     _markingStatus = MarkingStatus.success;
     _markingMessage = piSuccess
-        ? 'Attendance marked successfully!'
-        : 'Attendance saved locally (Pi unreachable).';
+        ? '✓ ${activeLecture.subject} (${activeLecture.facultyInitials}) — Marked!'
+        : '✓ ${activeLecture.subject} saved locally (Pi unreachable).';
     notifyListeners();
 
     await loadTodayRecords(classId);
@@ -115,6 +181,14 @@ class AttendanceProvider extends ChangeNotifier {
   /// Get attendance records for a student
   List<AttendanceRecord> getStudentRecords(String uid) {
     return _localStorage.getRecordsForStudent(uid);
+  }
+
+  /// Get attendance records for a student on a specific date
+  List<AttendanceRecord> getRecordsForDate(String uid, String classId, String date) {
+    return _localStorage.getRecordsForStudent(uid)
+        .where((r) => r.classId == classId && r.date == date)
+        .toList()
+      ..sort((a, b) => a.lectureSlot.compareTo(b.lectureSlot));
   }
 
   /// Get attendance percentage for a student
@@ -144,7 +218,19 @@ class AttendanceProvider extends ChangeNotifier {
     }
   }
 
-  /// Check if today already marked
+  /// Check if today already marked for the current lecture
+  bool isCurrentLectureMarked(String uid, String classId) {
+    final activeLecture = getActiveLecture();
+    if (activeLecture == null) return false;
+    return _localStorage.hasRecord(
+      classId,
+      Helpers.todayDate(),
+      uid,
+      lectureSlot: activeLecture.periodNumber,
+    );
+  }
+
+  /// Legacy: Check if any attendance marked today
   bool isTodayMarked(String uid, String classId) {
     return _localStorage.hasRecord(classId, Helpers.todayDate(), uid);
   }

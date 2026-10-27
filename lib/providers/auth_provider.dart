@@ -126,6 +126,21 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update teacher's display name and clear needsNameSetup flag
+  Future<bool> updateTeacherName(String newName) async {
+    if (_user == null) return false;
+    try {
+      _user = _user!.copyWith(name: newName, needsNameSetup: false);
+      await _authService.updateUserProfile(_user!);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
   void clearError() {
     _errorMessage = '';
     notifyListeners();

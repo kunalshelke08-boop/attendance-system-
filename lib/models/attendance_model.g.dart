@@ -28,13 +28,16 @@ class AttendanceRecordAdapter extends TypeAdapter<AttendanceRecord> {
       status: fields[5] as String,
       markedVia: fields[6] as String,
       isSynced: fields[7] as bool,
+      subject: fields[8] as String? ?? '',
+      facultyInitials: fields[9] as String? ?? '',
+      lectureSlot: fields[10] as int? ?? 0,
     );
   }
 
   @override
   void write(BinaryWriter writer, AttendanceRecord obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.uid)
       ..writeByte(1)
@@ -50,7 +53,13 @@ class AttendanceRecordAdapter extends TypeAdapter<AttendanceRecord> {
       ..writeByte(6)
       ..write(obj.markedVia)
       ..writeByte(7)
-      ..write(obj.isSynced);
+      ..write(obj.isSynced)
+      ..writeByte(8)
+      ..write(obj.subject)
+      ..writeByte(9)
+      ..write(obj.facultyInitials)
+      ..writeByte(10)
+      ..write(obj.lectureSlot);
   }
 
   @override

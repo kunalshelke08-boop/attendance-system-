@@ -24,16 +24,12 @@ class AppConstants {
 
   // Class options
   static const List<String> classOptions = [
+    'IIOT-7',
     'CS-A',
     'CS-B',
-    'CS-C',
     'IT-A',
     'IT-B',
     'EC-A',
-    'EC-B',
-    'ME-A',
-    'ME-B',
-    'CE-A',
   ];
 
   // Session duration options (minutes)
@@ -52,5 +48,5 @@ class AppConstants {
   static bool isHoliday(String date) => holidays.contains(date);
 
   static bool isWeekend(DateTime date) =>
-      date.weekday == DateTime.saturday || date.weekday == DateTime.sunday;
+      date.weekday == DateTime.sunday;
 }

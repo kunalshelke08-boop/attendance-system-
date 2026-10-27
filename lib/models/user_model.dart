@@ -7,6 +7,8 @@ class UserModel {
   final String role; // 'student' or 'teacher'
   final String classId;
   final DateTime createdAt;
+  final String subject; // teacher's subject (e.g. 'Cloud Computing')
+  final bool needsNameSetup; // true if teacher hasn't set their name yet
 
   UserModel({
     required this.uid,
@@ -15,6 +17,8 @@ class UserModel {
     required this.role,
     required this.classId,
     required this.createdAt,
+    this.subject = '',
+    this.needsNameSetup = false,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
@@ -27,6 +31,9 @@ class UserModel {
       createdAt: map['createdAt'] != null
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
+      subject: map['subject'] ?? '',
+      needsNameSetup: map['needsNameSetup'] == true ||
+          map['needsNameSetup'] == 'true',
     );
   }
 
@@ -37,6 +44,8 @@ class UserModel {
       'role': role,
       'classId': classId,
       'createdAt': Timestamp.fromDate(createdAt),
+      'subject': subject,
+      'needsNameSetup': needsNameSetup,
     };
   }
 
@@ -50,6 +59,8 @@ class UserModel {
     String? role,
     String? classId,
     DateTime? createdAt,
+    String? subject,
+    bool? needsNameSetup,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -58,6 +69,9 @@ class UserModel {
       role: role ?? this.role,
       classId: classId ?? this.classId,
       createdAt: createdAt ?? this.createdAt,
+      subject: subject ?? this.subject,
+      needsNameSetup: needsNameSetup ?? this.needsNameSetup,
     );
   }
 }
+

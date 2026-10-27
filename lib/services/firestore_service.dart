@@ -29,6 +29,14 @@ class FirestoreService {
   }
 
   // ─── Attendance ────────────────────────────────────────
+  /// Firestore doc ID includes lecture slot so multiple lectures/day are stored separately
+  String _attendanceDocId(AttendanceRecord record) {
+    if (record.lectureSlot > 0) {
+      return '${record.uid}_L${record.lectureSlot}';
+    }
+    return record.uid; // backward compat for old records
+  }
+
   Future<void> uploadAttendance(AttendanceRecord record) async {
     await _db
         .collection('attendance')
@@ -36,7 +44,7 @@ class FirestoreService {
         .collection('records')
         .doc(record.date)
         .collection('students')
-        .doc(record.uid)
+        .doc(_attendanceDocId(record))
         .set(record.toMap(), SetOptions(merge: true));
   }
 
@@ -49,7 +57,7 @@ class FirestoreService {
           .collection('records')
           .doc(record.date)
           .collection('students')
-          .doc(record.uid);
+          .doc(_attendanceDocId(record));
       batch.set(ref, record.toMap(), SetOptions(merge: true));
     }
     await batch.commit();

@@ -4,6 +4,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/attendance_provider.dart';
 import '../../providers/session_provider.dart';
 import '../../providers/connectivity_provider.dart';
+import '../../services/timetable_service.dart';
 import '../../utils/theme.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/stat_card.dart';
@@ -17,6 +18,8 @@ class TeacherDashboard extends StatefulWidget {
 }
 
 class _TeacherDashboardState extends State<TeacherDashboard> {
+  final TimetableService _timetable = TimetableService();
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +49,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     final todayRecords = attendance.todayRecords;
     final presentCount =
         todayRecords.where((r) => r.status == 'present').length;
+    final currentLecture = _timetable.getCurrentLecture();
 
     return Scaffold(
       body: Container(
@@ -65,32 +69,75 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               children: [
                 // Header
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(Helpers.greetingMessage(),
-                            style: AppTheme.bodyMedium),
-                        const SizedBox(height: 4),
-                        Text(user.name, style: AppTheme.headingLarge),
-                      ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(Helpers.greetingMessage(),
+                              style: AppTheme.bodyMedium),
+                          const SizedBox(height: 4),
+                          Text(
+                            user.name,
+                            style: AppTheme.headingLarge,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     const SyncIndicator(),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  '${user.classId} • ${Helpers.formatDisplayDate(DateTime.now())}',
-                  style: AppTheme.labelStyle,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accentPurple.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(user.classId,
+                          style: AppTheme.labelStyle.copyWith(
+                              color: AppTheme.accentPurple,
+                              fontWeight: FontWeight.w700)),
+                    ),
+                    const SizedBox(width: 8),
+                    if (user.subject.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accentTeal.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(user.subject,
+                            style: AppTheme.labelStyle.copyWith(
+                                color: AppTheme.accentTeal,
+                                fontWeight: FontWeight.w700)),
+                      ),
+                    const Spacer(),
+                    Text(
+                      Helpers.formatDisplayDate(DateTime.now()),
+                      style: AppTheme.labelStyle,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+
+                // Current lecture info
+                _buildCurrentLectureCard(currentLecture),
+                const SizedBox(height: 16),
 
                 // Active session card
                 if (session.hasActiveSession) ...[
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -106,7 +153,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     child: Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: AppTheme.successGreen.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
@@ -114,10 +161,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                           child: const Icon(
                             Icons.play_circle_rounded,
                             color: AppTheme.successGreen,
-                            size: 28,
+                            size: 24,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,13 +174,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                 style: TextStyle(
                                   color: AppTheme.successGreen,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 16,
+                                  fontSize: 15,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
                                 'Time remaining: ${session.remainingText}',
-                                style: AppTheme.bodyMedium,
+                                style: AppTheme.labelStyle,
                               ),
                             ],
                           ),
@@ -143,22 +190,23 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                           icon: const Icon(
                             Icons.stop_circle_rounded,
                             color: AppTheme.errorRed,
-                            size: 32,
+                            size: 28,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                 ] else ...[
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: AppTheme.glassCard,
                     child: Row(
                       children: [
                         Icon(Icons.info_outline_rounded,
-                            color: AppTheme.textSecondary.withOpacity(0.6)),
+                            color: AppTheme.textSecondary.withOpacity(0.6),
+                            size: 20),
                         const SizedBox(width: 12),
                         const Expanded(
                           child: Text(
@@ -172,7 +220,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                 ],
 
                 // Stats
@@ -203,7 +251,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     Expanded(
                       child: StatCard(
                         title: 'Pi Status',
-                        value: connectivity.isPiReachable ? 'Online' : 'Offline',
+                        value:
+                            connectivity.isPiReachable ? 'Online' : 'Offline',
                         icon: connectivity.isPiReachable
                             ? Icons.wifi_rounded
                             : Icons.wifi_off_rounded,
@@ -216,7 +265,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     Expanded(
                       child: StatCard(
                         title: 'Internet',
-                        value: connectivity.isOnline ? 'Connected' : 'No Net',
+                        value:
+                            connectivity.isOnline ? 'Connected' : 'No Net',
                         icon: connectivity.isOnline
                             ? Icons.cloud_done_rounded
                             : Icons.cloud_off_rounded,
@@ -227,7 +277,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
                 // Today's attendance list
                 Text('Today\'s Attendance', style: AppTheme.headingSmall),
@@ -242,7 +292,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         children: [
                           Icon(Icons.group_off_rounded,
                               size: 48,
-                              color: AppTheme.textSecondary.withOpacity(0.5)),
+                              color:
+                                  AppTheme.textSecondary.withOpacity(0.5)),
                           const SizedBox(height: 12),
                           Text('No attendance marked yet.',
                               style: AppTheme.bodyMedium),
@@ -260,7 +311,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                             Container(
                               width: 40,
                               height: 40,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 gradient: AppTheme.primaryGradient,
                                 shape: BoxShape.circle,
                               ),
@@ -283,15 +334,38 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(r.name,
-                                      style: AppTheme.bodyLarge
-                                          .copyWith(fontWeight: FontWeight.w600)),
-                                  Text(
-                                    Helpers.formatTimestamp(r.timestamp),
-                                    style: AppTheme.labelStyle,
+                                      style: AppTheme.bodyLarge.copyWith(
+                                          fontWeight: FontWeight.w600),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      if (r.subject.isNotEmpty) ...[
+                                        Text(
+                                          '${r.subject} · P${r.lectureSlot}',
+                                          style: AppTheme.labelStyle.copyWith(
+                                              color: AppTheme.accentTeal),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text('·',
+                                            style: AppTheme.labelStyle),
+                                        const SizedBox(width: 6),
+                                      ],
+                                      Flexible(
+                                        child: Text(
+                                          Helpers.formatTimestamp(
+                                              r.timestamp),
+                                          style: AppTheme.labelStyle,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
@@ -318,6 +392,84 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentLectureCard(CurrentLectureInfo info) {
+    Color statusColor;
+    IconData statusIcon;
+
+    switch (info.status) {
+      case 'in_lecture':
+        statusColor = AppTheme.successGreen;
+        statusIcon = Icons.menu_book_rounded;
+        break;
+      case 'break':
+        statusColor = AppTheme.warningYellow;
+        statusIcon = Icons.coffee_rounded;
+        break;
+      default:
+        statusColor = AppTheme.textSecondary;
+        statusIcon = Icons.schedule_rounded;
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            statusColor.withOpacity(0.15),
+            statusColor.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: statusColor.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(statusIcon, color: statusColor, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  info.status == 'in_lecture' ? 'Current Lecture' : 'Status',
+                  style: AppTheme.labelStyle.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  info.message,
+                  style: AppTheme.bodyMedium.copyWith(
+                    color: AppTheme.textPrimary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (info.hasLecture && info.lecture != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '${info.lecture!.timeRange} · ${info.lecture!.room}',
+                    style: AppTheme.labelStyle,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
